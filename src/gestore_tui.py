@@ -3,7 +3,6 @@ import re
 import subprocess
 from . import download as dl
 
-
 class Colori:
     '''Codici ANSI per colori nel terminale'''
     RESET = '\033[0m'
@@ -14,7 +13,6 @@ class Colori:
     MAGENTA = '\033[95m'
     CIANO = '\033[96m'
     BIANCO = '\033[97m'
-
 
 def controlla_ffmpeg():
     '''Controlla se FFmpeg è installato nel sistema.'''
