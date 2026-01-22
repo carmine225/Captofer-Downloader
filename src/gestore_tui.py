@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+from pathlib import Path
 from . import download as dl
 
 class Colori:
@@ -22,33 +23,33 @@ def controlla_ffmpeg():
     except FileNotFoundError:
         return False
 
-
 def pulisci_nome(nome):
-    '''Rimuove caratteri non validi per i file Windows: \ / : * ? " < > |'''
+    '''Rimuove caratteri non validi per i file Windows/Linux'''
     return re.sub(r'[\\/*?:"<>|]', '', nome)
 
-
 def clear_console():
-    '''Pulisce la console. Windows: cls, Linux/macOS: clear'''
+    '''Pulisce la console.'''
     os.system('cls' if os.name == 'nt' else 'clear')
-
 
 def get_url():
     '''Acquisisce URL e gestisce il download del video/audio.'''
-    url = input('Inserisci l\'URL del video/audio da scaricare: ')
+    url = input(f'{Colori.CIANO}Inserisci l\'URL del video/audio da scaricare: {Colori.RESET}')
     
-    # Controlla FFmpeg all'inizio
     if not controlla_ffmpeg():
-        print(f'{Colori.ROSSO}❌ ERRORE: FFmpeg non è installato!{Colori.RESET}')
-        print(f'''{Colori.GIALLO}Scaricalo da: https://ffmpeg.org/download.html
-oppure usa il bash: winget install ffmpeg{Colori.RESET}''')
+        print(f'{Colori.ROSSO}❌ ERRORE: FFmpeg non è installato nel container!{Colori.RESET}')
         return
     
     result = dl.verifica_e_analizza(url)
     
     if result['status'] == 'ok':
         titolo_pulito = pulisci_nome(result['title'])
-        
+
+        # --- LOGICA PERCORSO ---
+        # Path.cwd() in Docker è /app. 
+        # Quindi download_dir sarà /app/downloads
+        download_dir = Path.cwd() / 'downloads'
+        download_dir.mkdir(exist_ok=True)
+
         print(f'\n{Colori.VERDE}✅ Titolo: {titolo_pulito}{Colori.RESET}')
         print(f'{Colori.BLU}{"─" * 60}{Colori.RESET}')
         
@@ -64,16 +65,19 @@ oppure usa il bash: winget install ffmpeg{Colori.RESET}''')
             
             is_audio = f_scelto['res'] == 'Solo Audio'
             ext_finale = 'mp3' if is_audio else 'mp4'
-            output_path = f'{titolo_pulito}.{ext_finale}'
             
-            print(f'\n{Colori.GIALLO}⬇️  Scaricamento in corso: {Colori.BIANCO}{output_path}{Colori.GIALLO} ...{Colori.RESET}')
+            # Costruiamo il percorso completo
+            file_finale = download_dir / f'{titolo_pulito}.{ext_finale}'
+            output_path = str(file_finale)
+
+            print(f'\n{Colori.GIALLO}⬇️  Destinazione: {Colori.BIANCO}{output_path}{Colori.RESET}')
             
             if is_audio:
                 dl.download_audio(url, output_path)
             else:
                 dl.download_video(url, output_path)
                 
-            print(f'\n{Colori.VERDE}✅ Task complete. Asset secured.{Colori.RESET}')
+            print(f'\n{Colori.VERDE}✅ Task complete. File disponibile nella cartella /downloads del tuo PC.{Colori.RESET}')
         except (ValueError, IndexError):
             print(f'{Colori.ROSSO}❌ Scelta non valida.{Colori.RESET}')
     else:
